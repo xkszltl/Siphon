@@ -54,7 +54,7 @@ else ()
 endif ()
 
 file (GLOB_RECURSE SIPHON_SOURCES "${PROJECT_SOURCE_DIR}/src/siphon/*.cpp")
-add_library (siphon SHARED ${SIPHON_SOURCE})
+add_library (siphon SHARED ${SIPHON_SOURCES})
 set_target_properties (siphon PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${USE_LTO})
 
 find_package (OpenCV REQUIRED)
