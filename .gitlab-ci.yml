@@ -1,0 +1,15 @@
+stages:
+  - build
+
+gcc-7:
+  stage: build
+  retry: 2
+  tags:
+    - docker
+    - gpu
+  script:
+    - mkdir -p build
+    - cd build
+    - scl enable devtoolset-7 'cmake -DCMAKE_C_COMPILER=gcc -DCMAKE_C_FLAGS="-g" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS="-g" -DCMAKE_MODULE_PATH="/usr/local/src/pytorch/cmake/Modules" -DCMAKE_VERBOSE_MAKEFILE=ON -GNinja ..'
+    - cmake --build .
+
