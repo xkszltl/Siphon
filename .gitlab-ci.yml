@@ -10,7 +10,7 @@ gcc-7:
   script:
     - mkdir -p build
     - cd build
-    - . /opt/intel/compilers_and_libraries/$(uname -s | tr '[A-Z]' '[a-z]')/compiler_and_libraries/bin/compilervars.sh
+    - . /opt/intel/compilers_and_libraries/$(uname -s | tr '[A-Z]' '[a-z]')/bin/compilervars.sh
     - . scl_source enable devtoolset-7
     - cmake
           -DCMAKE_C_COMPILER=gcc
