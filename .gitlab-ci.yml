@@ -11,7 +11,7 @@ gcc-7:
     - mkdir -p build
     - cd build
     - . /opt/intel/compilers_and_libraries/$(uname -s | tr '[A-Z]' '[a-z]')/bin/compilervars.sh intel64
-    - . scl_source enable devtoolset-7
+    - set +e && . scl_source enable devtoolset-7 && set -e
     - cmake
           -DCMAKE_C_COMPILER=gcc
           -DCMAKE_C_FLAGS="-g"
