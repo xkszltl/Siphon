@@ -3,7 +3,7 @@ stages:
 
 gcc-7:
   stage: build
-  retry: 2
+  retry: 1
   tags:
     - docker
     - gpu
