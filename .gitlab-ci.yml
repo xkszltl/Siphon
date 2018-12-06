@@ -10,6 +10,16 @@ gcc-7:
   script:
     - mkdir -p build
     - cd build
-    - scl enable devtoolset-7 'cmake -DCMAKE_C_COMPILER=gcc -DCMAKE_C_FLAGS="-g" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS="-g" -DCMAKE_MODULE_PATH="/usr/local/src/pytorch/cmake/Modules" -DCMAKE_VERBOSE_MAKEFILE=ON -GNinja ..'
+    - . /opt/intel/compilers_and_libraries/$(uname -s | tr '[A-Z]' '[a-z]')/compiler_and_libraries/bin/compilervars.sh
+    - . scl_source enable devtoolset-7
+    - cmake
+          -DCMAKE_C_COMPILER=gcc
+          -DCMAKE_C_FLAGS="-g"
+          -DCMAKE_CXX_COMPILER=g++
+          -DCMAKE_CXX_FLAGS="-g"
+          -DCMAKE_MODULE_PATH="/usr/local/src/pytorch/cmake/Modules"
+          -DCMAKE_VERBOSE_MAKEFILE=ON
+          -GNinja
+          ..
     - cmake --build .
 
