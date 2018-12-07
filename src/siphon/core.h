@@ -1,5 +1,7 @@
 #pragma once
 
+#include "siphon/utils.h"
+
 #include <caffe2/core/net.h>
 #include <caffe2/core/workspace.h>
 
@@ -30,17 +32,26 @@ namespace siphon
         using path = std::experimental::filesystem::path;
     #endif
 
+        SIPHON_API
         Siphon();
 
+        SIPHON_API
         void Load(path dir);
+
+        SIPHON_API
         void Save(path dir);
+
+        SIPHON_API
         void SaveONNX(path fn);
 
         Workspace ws;
         map<string, NetDef> nets;
 
     private:
+        SIPHON_HIDDEN
         NetDef LoadC2(path fn);
+
+        SIPHON_HIDDEN
         void SaveC2(const NetDef& net, path fn);
     };
 }

@@ -4,6 +4,8 @@
 #include <caffe2/core/logging.h>
 #include <caffe2/utils/proto_utils.h>
 
+#include <pybind11/pybind11.h>
+
 #include <locale>
 #include <memory>
 #include <set>
@@ -21,11 +23,13 @@ using namespace caffe2;
 
 namespace siphon
 {
+    SIPHON_API
     Siphon::Siphon()
     {
         Init();
     }
 
+    SIPHON_API
     void Siphon::Load(path dir)
     {
         LOG(INFO) << "Load model from " << dir << ".";
@@ -58,6 +62,7 @@ namespace siphon
         }
     }
 
+    SIPHON_API
     void Siphon::Save(path dir)
     {
         LOG(INFO) << "Save model to " << dir << ".";
@@ -72,6 +77,7 @@ namespace siphon
         SaveC2(nets["pred"], dir / "pred.prototxt");
     }
 
+    SIPHON_API
     void Siphon::SaveONNX(path fn)
     {
         LOG(INFO) << "Save model to " << fn << " in ONNX.";
@@ -79,6 +85,7 @@ namespace siphon
         fn = canonical(fn);
     }
 
+    SIPHON_HIDDEN
     NetDef Siphon::LoadC2(path fn)
     {
         fn = canonical(fn);
@@ -90,6 +97,7 @@ namespace siphon
         return net;
     }
 
+    SIPHON_HIDDEN
     void Siphon::SaveC2(const NetDef& net, path fn)
     {
         auto ext = fn.extension().string();

@@ -13,6 +13,7 @@ namespace siphon
     DEFINE_string(save,      "", "Directory to save in Caffe2 format.");
     DEFINE_string(save_onnx, "", "Directory to save in ONNX format.");
 
+    SIPHON_API
     int Init(const bool force)
     {
         static bool initialized = false;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "siphon/utils.h"
+
 #include <gflags/gflags.h>
 
 namespace siphon
@@ -8,5 +10,6 @@ namespace siphon
     DECLARE_string(save);
     DECLARE_string(save_onnx);
 
+    SIPHON_API
     int Init(const bool force = false);
 }
