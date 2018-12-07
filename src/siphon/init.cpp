@@ -9,8 +9,9 @@ using namespace caffe2;
 
 namespace siphon
 {
-    DEFINE_string(load_c2,      "", "Directory to load Caffe2 network.");
-    DEFINE_string(save_onnx,    "", "Directory to save in ONNX format.");
+    DEFINE_string(load,      "", "Directory to load Caffe2 network.");
+    DEFINE_string(save,      "", "Directory to save in Caffe2 format.");
+    DEFINE_string(save_onnx, "", "Directory to save in ONNX format.");
 
     int Init(const bool force)
     {

@@ -4,8 +4,8 @@
 
 namespace siphon
 {
-    DECLARE_string(init);
-    DECLARE_string(pred);
+    DECLARE_string(load);
+    DECLARE_string(save);
     DECLARE_string(save_onnx);
 
     int Init(const bool force = false);

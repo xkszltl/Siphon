@@ -9,6 +9,9 @@
     #include <experimental/filesystem>
 #endif
 
+#include <map>
+#include <string>
+
 namespace siphon
 {
     class Siphon
@@ -18,6 +21,9 @@ namespace siphon
 
         using Workspace = caffe2::Workspace;
 
+        template <typename K, typename V>
+        using map = std::map<K, V>;
+
     #if __has_include(<filesystem>)
         using path = std::filesystem::path;
     #else
@@ -26,9 +32,15 @@ namespace siphon
 
         Siphon();
 
-        NetDef LoadC2(path fn);
         void Load(path dir);
+        void Save(path dir);
+        void SaveONNX(path fn);
 
         Workspace ws;
+        map<string, NetDef> nets;
+
+    private:
+        NetDef LoadC2(path fn);
+        void SaveC2(const NetDef& net, path fn);
     };
 }
