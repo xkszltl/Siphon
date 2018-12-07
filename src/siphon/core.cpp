@@ -4,6 +4,8 @@
 #include <caffe2/core/logging.h>
 #include <caffe2/utils/proto_utils.h>
 
+#include <onnx/onnx_pb.h>
+
 #include <pybind11/pybind11.h>
 
 #include <locale>
@@ -20,9 +22,12 @@ using namespace std;
 #endif
 
 using namespace caffe2;
+using namespace pybind11::literals;
 
 namespace siphon
 {
+    namespace py = pybind11;
+
     SIPHON_API
     Siphon::Siphon()
     {
@@ -82,7 +87,27 @@ namespace siphon
     {
         LOG(INFO) << "Save model to " << fn << " in ONNX.";
 
+        CAFFE_ENFORCE(nets.count("init"), "Init net doesn't exist.");
+        CAFFE_ENFORCE(nets.count("pred"), "Predict net doesn't exist.");
+        auto value_info = py::dict(
+                "data"_a = py::make_tuple(
+                    py::module::import("onnx").attr("TensorProto.FLOAT"),
+                    py::make_tuple(1, 1, 1, 1)));
+        auto caffe2_net_to_onnx_model = py::module::import("caffe2.python.onnx.frontend").attr("caffe2_net_to_onnx_model");
+        py::bytes onnx_model_str = caffe2_net_to_onnx_model(nets["pred"], nets["init"], value_info).attr("SerializeToString")();
+        onnx_c2::ModelProto onnx_model;
+        ParseProtoFromLargeString(static_cast<string>(onnx_model_str), &onnx_model);
+
         fn = canonical(fn);
+
+        {
+            auto ext = fn.extension().string();
+            for (auto& c : ext)
+                c = tolower(c, locale());
+            CHECK_EQ(ext, ".onnx") << "Unexpected extension " << ext << " for ONNX.";
+        }
+
+        WriteProtoToBinaryFile(onnx_model, fn.string());
     }
 
     SIPHON_HIDDEN
