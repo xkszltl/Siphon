@@ -49,16 +49,16 @@ namespace siphon
                 for (auto& c : ext)
                     c = tolower(c, locale());
             }
-            if (ext == ".pb" || ext == ".prototxt")
+            if (set<string>{ ".pb", ".pbtxt", ".prototxt" }.count(ext))
             {
                 auto&& net = LoadC2(canonical(fn.path()));
                 {
                     auto name = fn.path().stem().string();
                     for (auto& c : name)
                         c = tolower(c, locale());
-                    if (set<string>{("init"), ("init_net")}.count(name))
+                    if (set<string>{ "init", "init_net" }.count(name))
                         net.set_name("init");
-                    else if (set<string>{"pred", "predict", "pred_net", "predict_net"}.count(name))
+                    else if (set<string>{ "pred", "predict", "pred_net", "predict_net" }.count(name))
                         net.set_name("pred");
                 }
                 ws.CreateNet(net);
@@ -135,7 +135,7 @@ namespace siphon
         {
             WriteProtoToBinaryFile(net, fn.string());
         }
-        else if (ext == ".prototxt")
+        else if (set<string>{ ".pbtxt", ".prototxt" }.count(ext))
         {
             WriteProtoToTextFile(net, fn.string());
         }
