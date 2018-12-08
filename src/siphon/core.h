@@ -12,13 +12,17 @@
 #endif
 
 #include <map>
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace siphon
 {
     class Siphon
     {
     public:
+        using TensorProto_DataType = caffe2::TensorProto_DataType;
+
         using NetDef = caffe2::NetDef;
 
         using Workspace = caffe2::Workspace;
@@ -31,6 +35,12 @@ namespace siphon
     #else
         using path = std::experimental::filesystem::path;
     #endif
+
+        template <typename T>
+        using unique_ptr = std::unique_ptr<T>;
+
+        template <typename T>
+        using vector = std::vector<T>;
 
         SIPHON_API
         Siphon();
@@ -46,6 +56,15 @@ namespace siphon
 
         Workspace ws;
         map<string, NetDef> nets;
+
+        struct ValueInfo
+        {
+            string input;
+            TensorProto_DataType type;
+            vector<int> dims;
+        };
+        
+        unique_ptr<ValueInfo> value_info;
 
     private:
         SIPHON_HIDDEN
