@@ -24,4 +24,11 @@ gcc-7:
           ..
     - cmake --build .
     - export PYTHONPATH="$(ls -d /usr/local/lib/python*/site-packages | paste -sd':' -):$PYTHONPATH"
+    - mkdir -p squeezenet
+    - pushd squeezenet
+    - wget -c 'https://git.codingcafe.org/Mirrors/caffe2/models/raw/master/$(basename "$(pwd)")/init_net.pb?inline=false' -O init_net.pb
+    - wget -c 'https://git.codingcafe.org/Mirrors/caffe2/models/raw/master/$(basename "$(pwd)")/predict_net.pb?inline=false' -O predict_net.pb
+    - wget -c 'https://git.codingcafe.org/Mirrors/caffe2/models/raw/master/$(basename "$(pwd)")/value_info.json?inline=false' -O value_info.json
+    - popd
+    - bin/siphon --caffe2_log_level 0 --load squeezenet --save c2net --save onnx model.onnx || true
 
