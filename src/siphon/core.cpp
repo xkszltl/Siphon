@@ -6,8 +6,9 @@
 
 #include <onnx/onnx_pb.h>
 
-#include <pybind11/pybind11.h>
+#include <pybind11/embed.h>
 
+#include <exception>
 #include <fstream>
 #include <locale>
 #include <memory>
@@ -31,6 +32,23 @@ namespace siphon
 {
     namespace py = pybind11;
 
+    static py::object py_import(const string& module)
+    {
+        try
+        {
+            return py::module::import(module.c_str());
+        }
+        catch (const exception& e)
+        {
+            LOG(FATAL)
+                << "Failed to import module \"" << module << "\":" << endl
+                << string(40, '-') << endl
+                << e.what() << endl
+                << string(40, '0');
+            throw;
+        }
+    }
+
     SIPHON_API
     Siphon::Siphon()
     {
@@ -38,7 +56,7 @@ namespace siphon
     }
 
     SIPHON_API
-    void Siphon::Load(path dir)
+    void Siphon::load(path dir)
     {
         LOG(INFO) << "Load model from " << dir << ".";
 
@@ -66,7 +84,7 @@ namespace siphon
                 if (set<string>{ "init", "init_net" }.count(name))
                 {
                     LOG(INFO) << "Found init net " << canonical_path << ".";
-                    auto&& net = LoadC2(canonical_path);
+                    auto&& net = load_c2(canonical_path);
                     net.set_name("init");
                     ws.RunNetOnce(nets[net.name()] = move(net));
                 }
@@ -123,7 +141,7 @@ namespace siphon
         {
             LOG(INFO) << "Load predict net " << i << ".";
 
-            auto&& net = LoadC2(i);
+            auto&& net = load_c2(i);
             net.set_name("pred");
             ws.CreateNet(nets[net.name()] = move(net));
         }
@@ -132,7 +150,7 @@ namespace siphon
     }
 
     SIPHON_API
-    void Siphon::Save(path dir)
+    void Siphon::save(path dir)
     {
         LOG(INFO) << "Save model to " << dir << ".";
 
@@ -153,42 +171,67 @@ namespace siphon
         }
 
         CAFFE_ENFORCE(nets.count("init"), "Init net doesn't exist.");
-        SaveC2(nets["init"], dir / "init.pb");
+        save_c2(nets["init"], dir / "init.pb");
 
         CAFFE_ENFORCE(nets.count("pred"), "Predict net doesn't exist.");
-        SaveC2(nets["pred"], dir / "pred.prototxt");
+        save_c2(nets["pred"], dir / "pred.prototxt");
 
         LOG(INFO) << "Model saved in Caffe2 format successfully.";
     }
 
     SIPHON_API
-    void Siphon::SaveONNX(path fn)
+    void Siphon::save_onnx(path fn)
     {
         LOG(INFO) << "Save model to " << fn << " in ONNX.";
 
         CAFFE_ENFORCE(nets.count("init"), "Init net doesn't exist.");
         CAFFE_ENFORCE(nets.count("pred"), "Predict net doesn't exist.");
-
-        py::dict value_info_py;
-        {
-            auto dims = make_tuple(
-                    value_info->dims[0],
-                    value_info->dims[1],
-                    value_info->dims[2],
-                    value_info->dims[3]);
-            value_info_py[value_info->input.c_str()] = make_tuple(static_cast<int>(value_info->type), dims);
-        }
+        CAFFE_ENFORCE(value_info, "Missing value info.");
 
         string init_str;
         string pred_str;
         nets["init"].SerializeToString(&init_str);
         nets["pred"].SerializeToString(&pred_str);
-        auto proto_module = py::module::import("caffe2.proto.caffe2_pb2");
-        auto init = proto_module.attr("ParseFromString")(init_str);
-        auto pred = proto_module.attr("ParseFromString")(pred_str);
 
-        auto caffe2_net_to_onnx_model = py::module::import("caffe2.python.onnx.frontend").attr("caffe2_net_to_onnx_model");
-        py::bytes onnx_model_str = caffe2_net_to_onnx_model(pred, init, value_info_py).attr("SerializeToString")();
+        LOG(INFO) << "Found suitable network for ONNX. Send to python for processing.";
+
+        string onnx_model_str;
+
+        // Python inter-ops.
+        py::scoped_interpreter guard;
+        {
+            py::dict value_info_py;
+            {
+                auto dims = make_tuple(
+                        value_info->dims[0],
+                        value_info->dims[1],
+                        value_info->dims[2],
+                        value_info->dims[3]);
+                value_info_py[value_info->input.c_str()] = make_tuple(static_cast<int>(value_info->type), dims);
+            }
+
+            auto proto_module = py_import("caffe2.proto.caffe2_pb2");
+
+            LOG(INFO) << "Deserialize init network in python.";
+            auto init = proto_module.attr("NetDef")();
+            init.attr("ParseFromString")(py::bytes(init_str));
+
+            LOG(INFO) << "Deserialize predict network in python.";
+            auto pred = proto_module.attr("NetDef")();
+            pred.attr("ParseFromString")(py::bytes(pred_str));
+
+            LOG(INFO) << "Create ONNX model in python.";
+            auto frontend_module = py_import("caffe2.python.onnx.frontend");
+            auto caffe2_net_to_onnx_model = frontend_module.attr("caffe2_net_to_onnx_model");
+            auto onnx_model_py = caffe2_net_to_onnx_model(pred, init, value_info_py);
+
+            LOG(INFO) << "Serialize ONNX model and send back to C++.";
+
+            py::bytes onnx_model_str = onnx_model_py.attr("SerializeToString")();
+            onnx_model_str = static_cast<string>(onnx_model_str);
+        }
+
+        LOG(INFO) << "Received serialized ONNX model from python.";
 
         onnx_c2::ModelProto onnx_model;
         ParseProtoFromLargeString(static_cast<string>(onnx_model_str), &onnx_model);
@@ -208,7 +251,7 @@ namespace siphon
     }
 
     SIPHON_HIDDEN
-    NetDef Siphon::LoadC2(path fn)
+    NetDef Siphon::load_c2(path fn)
     {
         fn = canonical(fn);
 
@@ -223,7 +266,7 @@ namespace siphon
     }
 
     SIPHON_HIDDEN
-    void Siphon::SaveC2(const NetDef& net, path fn)
+    void Siphon::save_c2(const NetDef& net, path fn)
     {
         auto ext = fn.extension().string();
         {

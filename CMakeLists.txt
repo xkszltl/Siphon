@@ -76,7 +76,7 @@ find_package (Threads REQUIRED)
 target_link_libraries (siphon_cpu PUBLIC ${CMAKE_THREAD_LIBS_INIT})
 
 find_package (pybind11 REQUIRED CONFIG)
-target_link_libraries (siphon_cpu PUBLIC pybind11::embed)
+target_link_libraries (siphon_cpu PRIVATE pybind11::embed)
 
 # set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "/usr/local/src/pytorch/cmake/Modules")
 find_package (Caffe2 REQUIRED CONFIG)

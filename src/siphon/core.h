@@ -46,13 +46,13 @@ namespace siphon
         Siphon();
 
         SIPHON_API
-        void Load(path dir);
+        void load(path dir);
 
         SIPHON_API
-        void Save(path dir);
+        void save(path dir);
 
         SIPHON_API
-        void SaveONNX(path fn);
+        void save_onnx(path fn);
 
         Workspace ws;
         map<string, NetDef> nets;
@@ -68,9 +68,9 @@ namespace siphon
 
     private:
         SIPHON_HIDDEN
-        NetDef LoadC2(path fn);
+        NetDef load_c2(path fn);
 
         SIPHON_HIDDEN
-        void SaveC2(const NetDef& net, path fn);
+        void save_c2(const NetDef& net, path fn);
     };
 }

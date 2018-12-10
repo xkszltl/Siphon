@@ -15,15 +15,15 @@ int main(int argc, char *argv[])
     Siphon sp;
     if (FLAGS_load != "")
     {
-        sp.Load(FLAGS_load);
+        sp.load(FLAGS_load);
     }
     if (FLAGS_save != "")
     {
-        sp.Save(FLAGS_save);
+        sp.save(FLAGS_save);
     }
     if (FLAGS_save_onnx != "")
     {
-        sp.SaveONNX(FLAGS_save_onnx);
+        sp.save_onnx(FLAGS_save_onnx);
     }
     return 0;
 }

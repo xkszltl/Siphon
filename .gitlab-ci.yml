@@ -19,7 +19,9 @@ gcc-7:
           -DCMAKE_CXX_FLAGS="-g"
           -DCMAKE_MODULE_PATH="/usr/local/src/pytorch/cmake/Modules"
           -DCMAKE_VERBOSE_MAKEFILE=ON
+          -DPYBIND11_PYTHON_VERSION=2.7
           -GNinja
           ..
     - cmake --build .
+    - export PYTHONPATH="$(ls -d /usr/local/lib/python*/site-packages | paste -sd':' -):$PYTHONPATH"
 
