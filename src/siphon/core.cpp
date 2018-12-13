@@ -28,6 +28,8 @@ using namespace std;
 using namespace caffe2;
 using namespace pybind11::literals;
 
+using ::ONNX_NAMESPACE::ModelProto;
+
 namespace siphon
 {
     namespace py = pybind11;
@@ -196,47 +198,61 @@ namespace siphon
         LOG(INFO) << "Found suitable network for ONNX. Send to python for processing.";
 
         string onnx_model_str;
+        ModelProto onnx_model;
 
         // Python inter-ops.
-        py::scoped_interpreter guard;
         {
-            py::dict value_info_py;
+            py::scoped_interpreter guard;
             {
-                auto dims = make_tuple(
-                        value_info->dims[0],
-                        value_info->dims[1],
-                        value_info->dims[2],
-                        value_info->dims[3]);
-                value_info_py[value_info->input.c_str()] = make_tuple(static_cast<int>(value_info->type), dims);
+                py::dict value_info_py;
+                {
+                    auto dims = make_tuple(
+                            value_info->dims[0],
+                            value_info->dims[1],
+                            value_info->dims[2],
+                            value_info->dims[3]);
+                    value_info_py[value_info->input.c_str()] = make_tuple(static_cast<int>(value_info->type), dims);
+                }
+
+                auto onnx_module = py_import("onnx");
+                auto proto_module = py_import("caffe2.proto.caffe2_pb2");
+                auto frontend_module = py_import("caffe2.python.onnx.frontend");
+
+                LOG(INFO) << "Deserialize init network in python.";
+                auto init = proto_module.attr("NetDef")();
+                init.attr("ParseFromString")(py::bytes(init_str));
+
+                LOG(INFO) << "Deserialize predict network in python.";
+                auto pred = proto_module.attr("NetDef")();
+                pred.attr("ParseFromString")(py::bytes(pred_str));
+
+                LOG(INFO) << "Create ONNX model in python.";
+                auto caffe2_net_to_onnx_model = frontend_module.attr("caffe2_net_to_onnx_model");
+                auto onnx_model_py = caffe2_net_to_onnx_model(pred, init, value_info_py);
+
+                LOG(INFO) << "Serialize ONNX model and send back to C++.";
+                {
+                    py::bytes onnx_model_str_py = onnx_model_py.attr("SerializeToString")();
+                    onnx_model_str = static_cast<string>(onnx_model_str_py);
+                }
+
+                LOG(INFO) << "Deserialize ONNX model in C++..";
+                ParseProtoFromLargeString(static_cast<string>(onnx_model_str), &onnx_model);
+                onnx_model.SerializeToString(&onnx_model_str);
+
+                LOG(INFO) << "Send ONNX model back to python for check.";
+                auto model_proto_py = onnx_module.attr("ModelProto")();
+                model_proto_py.attr("ParseFromString")(py::bytes(onnx_model_str));
+
+                LOG(INFO) << "Check ONNX model in python.";
+                auto check_model = onnx_module.attr("checker").attr("check_model");
+                check_model(py::bytes(model_proto_py));
             }
-
-            auto proto_module = py_import("caffe2.proto.caffe2_pb2");
-
-            LOG(INFO) << "Deserialize init network in python.";
-            auto init = proto_module.attr("NetDef")();
-            init.attr("ParseFromString")(py::bytes(init_str));
-
-            LOG(INFO) << "Deserialize predict network in python.";
-            auto pred = proto_module.attr("NetDef")();
-            pred.attr("ParseFromString")(py::bytes(pred_str));
-
-            LOG(INFO) << "Create ONNX model in python.";
-            auto frontend_module = py_import("caffe2.python.onnx.frontend");
-            auto caffe2_net_to_onnx_model = frontend_module.attr("caffe2_net_to_onnx_model");
-            auto onnx_model_py = caffe2_net_to_onnx_model(pred, init, value_info_py);
-
-            LOG(INFO) << "Serialize ONNX model and send back to C++.";
-
-            py::bytes onnx_model_str = onnx_model_py.attr("SerializeToString")();
-            onnx_model_str = static_cast<string>(onnx_model_str);
         }
 
-        LOG(INFO) << "Received serialized ONNX model from python.";
+        LOG(INFO) << "Passed sanity check for ONNX model.";
 
-        onnx_c2::ModelProto onnx_model;
-        ParseProtoFromLargeString(static_cast<string>(onnx_model_str), &onnx_model);
-
-        fn = canonical(fn);
+        // fn = canonical(fn);
 
         {
             auto ext = fn.extension().string();
