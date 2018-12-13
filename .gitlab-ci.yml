@@ -37,14 +37,14 @@ alexnet:
     - docker
     - gpu
   script:
-    - cd build
+    - . /etc/codingcafe/scripts/pkgs/env-mirror.sh
     - . /opt/intel/compilers_and_libraries/$(uname -s | tr '[A-Z]' '[a-z]')/bin/compilervars.sh intel64
     - export PYTHONPATH="$(ls -d /usr/local/lib/python2.7/site-packages | paste -sd':' -):$PYTHONPATH"
+    - cd build
     - mkdir -p alexnet
     - pushd alexnet
-    - . /etc/codingcafe/scripts/pkgs/env-mirror.sh
     - curl -sSL "$GIT_MIRROR/caffe2/models/raw/master/$(basename "$(pwd)")/init_net.pb?inline=false" > init_net.pb
-    - curl -sSL "$GIT_MIRROR/Mirrors/caffe2/models/raw/master/$(basename "$(pwd)")/predict_net.pb?inline=false" > predict_net.pbtxt
-    - curl -sSL "$GIT_MIRROR/Mirrors/caffe2/models/raw/master/$(basename "$(pwd)")/value_info.json?inline=false" > value_info.json
+    - curl -sSL "$GIT_MIRROR/caffe2/models/raw/master/$(basename "$(pwd)")/predict_net.pb?inline=false" > predict_net.pbtxt
+    - curl -sSL "$GIT_MIRROR/caffe2/models/raw/master/$(basename "$(pwd)")/value_info.json?inline=false" > value_info.json
     - popd
     - bin/siphon --caffe2_log_level 0 --load alexnet --save c2net --save_onnx model.onnx
