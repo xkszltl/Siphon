@@ -1,5 +1,6 @@
 stages:
   - build
+  - run
 
 gcc-7:
   stage: build
@@ -23,11 +24,26 @@ gcc-7:
           -GNinja
           ..
     - cmake --build .
-    - export PYTHONPATH="$(ls -d /usr/local/lib/python*/site-packages | paste -sd':' -):$PYTHONPATH"
-    - mkdir -p squeezenet
-    - pushd squeezenet
-    - wget -c "https://git.codingcafe.org/Mirrors/caffe2/models/raw/master/$(basename "$(pwd)")/init_net.pb?inline=false" -O init_net.pb
-    - wget -c "https://git.codingcafe.org/Mirrors/caffe2/models/raw/master/$(basename "$(pwd)")/predict_net.pb?inline=false" -O predict_net.pb
-    - wget -c "https://git.codingcafe.org/Mirrors/caffe2/models/raw/master/$(basename "$(pwd)")/value_info.json?inline=false" -O value_info.json
+  artifacts:
+    untracked: true
+    paths:
+      - build/
+    expire_in: 1 month
+
+alexnet:
+  stage: run
+  retry: 1
+  tags:
+    - docker
+    - gpu
+  script:
+    - cd build
+    - export PYTHONPATH="$(ls -d /usr/local/lib/python2.7/site-packages | paste -sd':' -):$PYTHONPATH"
+    - mkdir -p alexnet
+    - pushd alexnet
+    - . /etc/codingcafe/scripts/pkgs/env-mirror.sh
+    - curl -sSL "$GIT_MIRROR/caffe2/models/raw/master/$(basename "$(pwd)")/init_net.pb?inline=false" > init_net.pb
+    - curl -sSL "$GIT_MIRROR/Mirrors/caffe2/models/raw/master/$(basename "$(pwd)")/predict_net.pb?inline=false" > predict_net.pbtxt
+    - curl -sSL "$GIT_MIRROR/Mirrors/caffe2/models/raw/master/$(basename "$(pwd)")/value_info.json?inline=false" > value_info.json
     - popd
-    - bin/siphon --caffe2_log_level 0 --load squeezenet --save c2net --save_onnx model.onnx
+    - bin/siphon --caffe2_log_level 0 --load alexnet --save c2net --save_onnx model.onnx
