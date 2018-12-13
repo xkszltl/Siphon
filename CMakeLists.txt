@@ -34,6 +34,21 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS     "${CMAKE_EXE_LINKER_FLAGS}      ${OpenMP_EXE_LINKER_FLAGS}")
 endif ()
 
+set (CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -g")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
+option (USE_ASAN "Enable address sanitizer." OFF)
+if (USE_ASAN)
+    set (CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -fsanitize=address")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+endif ()
+
+option (USE_UBSAN "Enable undefined behavior sanitizer." ON)
+if (USE_UBSAN)
+    set (CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -fsanitize=undefined")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+endif ()
+
 option (USE_LTO "Enable LTO." ON)
 if (USE_LTO)
     check_ipo_supported (RESULT CMAKE_CHECK_IPO_RESULT OUTPUT CMAKE_CHECK_IPO_OUTPUT)
@@ -81,6 +96,9 @@ target_link_libraries (siphon_cpu PRIVATE pybind11::embed)
 # set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "/usr/local/src/pytorch/cmake/Modules")
 find_package (Caffe2 REQUIRED CONFIG)
 target_link_libraries (siphon_cpu PUBLIC ${Caffe2_MAIN_LIBS})
+
+find_package (ONNX REQUIRED CONFIG)
+target_link_libraries (siphon_cpu PRIVATE onnx)
 
 file (GLOB_RECURSE APP_SOURCES "${PROJECT_SOURCE_DIR}/src/app/*.cpp")
 foreach (filename ${APP_SOURCES})
