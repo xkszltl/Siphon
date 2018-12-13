@@ -11,7 +11,6 @@ gcc-7:
   script:
     - mkdir -p build
     - cd build
-    - . /opt/intel/compilers_and_libraries/$(uname -s | tr '[A-Z]' '[a-z]')/bin/compilervars.sh intel64
     - set +e && . scl_source enable devtoolset-7 && set -e
     - cmake
           -DCMAKE_C_COMPILER=gcc
@@ -38,6 +37,7 @@ alexnet:
     - gpu
   script:
     - cd build
+    - . /opt/intel/compilers_and_libraries/$(uname -s | tr '[A-Z]' '[a-z]')/bin/compilervars.sh intel64
     - export PYTHONPATH="$(ls -d /usr/local/lib/python2.7/site-packages | paste -sd':' -):$PYTHONPATH"
     - mkdir -p alexnet
     - pushd alexnet
