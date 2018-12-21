@@ -36,3 +36,7 @@ debug: build/bin/siphon
 	&& export PYTHONPATH="/usr/local/lib/python3.6/site-packages:$$PYTHONPATH" \
 	&& rm -rf c2model model.onnx \
 	&& LD_DEBUG=files bin/siphon --caffe2_log_level=0 --load ../test/resnet50 --save c2model --save_onnx model.onnx
+
+.PHONY: clean
+clean:
+	$(RM) build
