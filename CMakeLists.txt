@@ -76,6 +76,11 @@ add_library (siphon_cpu SHARED ${SIPHON_SOURCES})
 set_target_properties (siphon_cpu PROPERTIES INTERPROCEDURAL_OPTIMIZATION ${USE_LTO})
 target_include_directories (siphon_cpu PUBLIC "${PROJECT_SOURCE_DIR}/src")
 
+if (NOT MSVC)
+    set (CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -fvisibility=hidden")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+endif ()
+
 if (CMAKE_COMPILER_IS_GNUCXX)
     find_library (STDCXXFS_LIB stdc++fs HINTS /opt/rh/devtoolset-7/root/usr/lib/gcc/x86_64-redhat-linux/7)
     target_link_libraries (siphon_cpu PRIVATE ${STDCXXFS_LIB})
