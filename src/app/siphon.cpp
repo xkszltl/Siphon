@@ -17,6 +17,10 @@ int main(int argc, char *argv[])
     {
         sp.load(FLAGS_load);
     }
+    if (FLAGS_load_onnx != "")
+    {
+        sp.load_onnx(FLAGS_load_onnx);
+    }
     if (FLAGS_save != "")
     {
         sp.save(FLAGS_save);

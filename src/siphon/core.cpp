@@ -135,7 +135,7 @@ namespace siphon
                     << buf
                     << "]";
 
-                BlobSetTensor(ws.CreateBlob(value_info->input), Tensor(value_info->dims, CPU));
+                BlobSetTensor(ws.CreateBlob(value_info->input), Tensor(value_info->dims, CUDA));
             }
         }
 
@@ -159,6 +159,7 @@ namespace siphon
         CAFFE_ENFORCE(create_directories(dir), "Cannot create output directory \"" + dir.string() + "\".");
         dir = canonical(dir);
 
+        if (value_info)
         {
             const auto& fn = dir / "value_info.json";
             ofstream fout(fn);
@@ -171,6 +172,10 @@ namespace siphon
             fout << "]]}" << endl;
             CAFFE_ENFORCE(fout, "Failied to write to \"" + fn.string() + "\".");
         }
+        else
+        {
+            LOG(WARNING) << "No value_info available. Saved Caffe2 model may not be converted to ONNX.";
+        }
 
         CAFFE_ENFORCE(nets.count("init"), "Init net doesn't exist.");
         save_c2(nets["init"], dir / "init.pb");
@@ -179,6 +184,90 @@ namespace siphon
         save_c2(nets["pred"], dir / "pred.prototxt");
 
         LOG(INFO) << "Model saved in Caffe2 format successfully.";
+    }
+
+    SIPHON_API
+    void Siphon::load_onnx(path fn)
+    {
+        // fn = canonical(fn);
+
+        {
+            auto ext = fn.extension().string();
+            for (auto& c : ext)
+                c = tolower(c, locale());
+            CHECK_EQ(ext, ".onnx") << "Unexpected extension " << ext << " for ONNX.";
+        }
+
+        LOG(INFO) << "Load ONNX model " << fn << ".";
+
+        // Parse ONNX model in C++ first for better debugging experience.
+
+        ModelProto onnx_model;
+        CAFFE_ENFORCE(ReadProtoFromFile(fn.string(), &onnx_model), "Failed to read ONNX model \"" + fn.string() + "\".");
+
+        for (const auto& input : onnx_model.graph().input())
+        {
+            value_info.reset(new ValueInfo);
+            value_info->input = input.name();
+            value_info->type = static_cast<TensorProto_DataType>(input.type().tensor_type().elem_type());
+            for (const auto& dim : input.type().tensor_type().shape().dim())
+            {
+                value_info->dims.emplace_back(static_cast<int>(dim.dim_value()));
+            }
+
+            BlobSetTensor(ws.CreateBlob(value_info->input), Tensor(value_info->dims, CUDA));
+        }
+
+        string onnx_model_str;
+        onnx_model.SerializeToString(&onnx_model_str);
+
+        LOG(INFO) << "Parse ONNX model in C++ successfully. Send to python for processing.";
+
+        string init_str;
+        string pred_str;
+
+        // Python inter-ops.
+        {
+            py::scoped_interpreter guard;
+            {
+                auto onnx_module = py_import("onnx");
+                auto proto_module = py_import("caffe2.proto.caffe2_pb2");
+                auto backend_module = py_import("caffe2.python.onnx.backend");
+
+                LOG(INFO) << "Deserialize ONNX model in python.";
+                auto model_proto_py = onnx_module.attr("ModelProto")();
+                model_proto_py.attr("ParseFromString")(py::bytes(onnx_model_str));
+
+                LOG(INFO) << "Convert ONNX model to Caffe2 format in python.";
+
+                auto backend = backend_module.attr("Caffe2Backend")();
+                auto onnx_graph_to_caffe2_net = backend.attr("onnx_graph_to_caffe2_net");
+                auto c2_nets_py = py::tuple(onnx_graph_to_caffe2_net(model_proto_py, "CUDA", 8));
+
+                LOG(INFO) << "Serialize Caffe2 model in python and send back to C++.";
+
+                init_str = static_cast<string>(py::bytes(c2_nets_py[0].attr("SerializeToString")()));
+                pred_str = static_cast<string>(py::bytes(c2_nets_py[1].attr("SerializeToString")()));
+            }
+        }
+
+        LOG(INFO) << "Deserialize and initialize Caffe2 init net in C++.";
+        {
+            NetDef net;
+            ParseProtoFromLargeString(init_str, &net);
+            net.set_name("init");
+            ws.RunNetOnce(nets[net.name()] = move(net));
+        }
+
+        LOG(INFO) << "Deserialize and initialize Caffe2 predict net in C++.";
+        {
+            NetDef net;
+            ParseProtoFromLargeString(pred_str, &net);
+            net.set_name("pred");
+            ws.CreateNet(nets[net.name()] = move(net));
+        }
+
+        LOG(INFO) << "ONNX model loaded successfully.";
     }
 
     SIPHON_API

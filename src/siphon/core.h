@@ -52,6 +52,9 @@ namespace siphon
         void save(path dir);
 
         SIPHON_API
+        void load_onnx(path fn);
+
+        SIPHON_API
         void save_onnx(path fn);
 
         Workspace ws;
