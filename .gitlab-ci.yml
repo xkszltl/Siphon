@@ -9,21 +9,7 @@ gcc-7:
     - docker
     - gpu
   script:
-    - mkdir -p build
-    - cd build
-    - set +e && . scl_source enable devtoolset-7 && set -e
-    - . /opt/intel/compilers_and_libraries/$(uname -s | tr '[A-Z]' '[a-z]')/bin/compilervars.sh intel64
-    - cmake
-          -DCMAKE_C_COMPILER=gcc
-          -DCMAKE_C_FLAGS="-g"
-          -DCMAKE_CXX_COMPILER=g++
-          -DCMAKE_CXX_FLAGS="-g"
-          -DCMAKE_MODULE_PATH="/usr/local/src/pytorch/cmake/Modules"
-          -DCMAKE_VERBOSE_MAKEFILE=ON
-          -DPYBIND11_PYTHON_VERSION=2.7
-          -GNinja
-          ..
-    - cmake --build .
+    - make
   artifacts:
     untracked: true
     paths:
@@ -38,14 +24,11 @@ resnet50:
     - gpu
   script:
     - . /etc/codingcafe/scripts/pkgs/env-mirror.sh
-    - . /opt/intel/compilers_and_libraries/$(uname -s | tr '[A-Z]' '[a-z]')/bin/compilervars.sh intel64
-    - export PYTHONPATH="$(ls -d /usr/local/lib/python2.7/site-packages | paste -sd':' -):$PYTHONPATH"
-    - cd build
-    - mkdir -p resnet50
-    - pushd resnet50
+    - mkdir -p test/resnet50
+    - pushd test/resnet50
     - curl -sSL "$GIT_MIRROR/caffe2/models/raw/master/$(basename "$(pwd)")/init_net.pb?inline=false" > init_net.pb
     - curl -sSL "$GIT_MIRROR/caffe2/models/raw/master/$(basename "$(pwd)")/predict_net.pbtxt?inline=false" > predict_net.pbtxt
     - curl -sSL "$GIT_MIRROR/caffe2/models/raw/master/$(basename "$(pwd)")/value_info.json?inline=false" > value_info.json
     - popd
-    - bin/siphon --caffe2_log_level 0 --load resnet50 --save c2net --save_onnx model.onnx
+    - make run
 
