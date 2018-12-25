@@ -9,9 +9,8 @@ using namespace caffe2;
 
 namespace siphon
 {
-    DEFINE_string(load,      "", "Directory to load Caffe2 network.");
+    DEFINE_string(load,      "", "Directory to load Caffe2/ONNX network.");
     DEFINE_string(save,      "", "Directory to save in Caffe2 format.");
-    DEFINE_string(load_onnx, "", "Directory to load ONNX model.");
     DEFINE_string(save_onnx, "", "Directory to save in ONNX format.");
 
     SIPHON_API

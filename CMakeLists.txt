@@ -96,14 +96,14 @@ find_package (Threads REQUIRED)
 target_link_libraries (siphon_cpu PUBLIC ${CMAKE_THREAD_LIBS_INIT})
 
 find_package (pybind11 REQUIRED CONFIG)
-target_link_libraries (siphon_cpu PRIVATE pybind11::embed)
+target_link_libraries (siphon_cpu PUBLIC pybind11::embed)
 
 # set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "/usr/local/src/pytorch/cmake/Modules")
 find_package (Caffe2 REQUIRED CONFIG)
 target_link_libraries (siphon_cpu PUBLIC ${Caffe2_MAIN_LIBS})
 
 find_package (ONNX REQUIRED CONFIG)
-target_link_libraries (siphon_cpu PRIVATE onnx)
+target_link_libraries (siphon_cpu PUBLIC onnx)
 
 file (GLOB_RECURSE APP_SOURCES "${PROJECT_SOURCE_DIR}/src/app/*.cpp")
 foreach (filename ${APP_SOURCES})

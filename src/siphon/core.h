@@ -1,9 +1,14 @@
 #pragma once
 
+#include "siphon/pyenv.h"
 #include "siphon/utils.h"
+
+#include <c10/Device.h>
 
 #include <caffe2/core/net.h>
 #include <caffe2/core/workspace.h>
+
+#include <onnx/onnx_pb.h>
 
 #if __has_include(<filesystem>)
     #include <filesystem>
@@ -21,8 +26,6 @@ namespace siphon
     class Siphon
     {
     public:
-        using TensorProto_DataType = caffe2::TensorProto_DataType;
-
         using NetDef = caffe2::NetDef;
 
         using Workspace = caffe2::Workspace;
@@ -52,18 +55,20 @@ namespace siphon
         void save(path dir);
 
         SIPHON_API
-        void load_onnx(path fn);
+        void save_onnx(path dir);
 
         SIPHON_API
-        void save_onnx(path fn);
+        string show_value_info();
 
         Workspace ws;
         map<string, NetDef> nets;
 
+        c10::DeviceType dev_type = c10::DeviceType::CPU;
+
         struct ValueInfo
         {
             string input;
-            TensorProto_DataType type;
+            onnx::TensorProto_DataType type;
             vector<int> dims;
         };
         
@@ -71,9 +76,17 @@ namespace siphon
 
     private:
         SIPHON_HIDDEN
-        NetDef load_c2(path fn);
+        static NetDef load_c2(path fn);
 
         SIPHON_HIDDEN
-        void save_c2(const NetDef& net, path fn);
+        static void save_c2(const NetDef& net, path fn);
+
+        SIPHON_HIDDEN
+        void load_onnx(path dir);
+
+        SIPHON_HIDDEN
+        void save_value_info(const path& fn);
+
+        PyEnv pyenv;
     };
 }
