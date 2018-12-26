@@ -40,6 +40,12 @@ namespace siphon
         CAFFE_ENFORCE(nets.count("pred"), "Predict net doesn't exist.");
         CAFFE_ENFORCE(value_info, "Missing value info.");
 
+        LOG(INFO) << "Convert fill ops into GivenTensor*Fill ops for init net.";
+        eval_fill(nets["init"]);
+
+        LOG(INFO) << "Convert fill ops into GivenTensor*Fill ops for predict net.";
+        eval_fill(nets["pred"]);
+
         save_value_info(dir / "value_info.json");
 
         string init_str;

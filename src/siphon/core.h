@@ -78,6 +78,9 @@ namespace siphon
 
     private:
         SIPHON_HIDDEN
+        NetDef& eval_fill(NetDef& net) const;
+
+        SIPHON_HIDDEN
         static NetDef load_c2(path fn);
 
         SIPHON_HIDDEN
