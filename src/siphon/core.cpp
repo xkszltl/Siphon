@@ -121,11 +121,10 @@ namespace siphon
                     value_info->dims.emplace_back(stoi(match[i]));
                 }
 
-                LOG(INFO)
-                    << "Create input blob based on value info:\n\tname: "
-                    << show_value_info();
+                LOG(INFO) << "Create input blob based on value info:\n" << show_value_info("\t");
 
                 BlobSetTensor(ws.CreateBlob(value_info->input), Tensor(value_info->dims, dev_type));
+                ws.GetBlob(value_info->input)->GetMutable<Tensor>()->mutable_data<float>();
             }
         }
 
@@ -142,6 +141,7 @@ namespace siphon
         CHECK_GT(nets.count("pred"), 0) << "Predict net not found.";
         LOG(INFO) << "Create predict net.";
         ws.CreateNet(nets["pred"]);
+        // ws.RunNet("pred");
 
         LOG(INFO) << "Model loaded successfully.";
     }
@@ -173,15 +173,15 @@ namespace siphon
     }
 
     SIPHON_API
-    string Siphon::show_value_info()
+    string Siphon::show_value_info(const string& prefix)
     {
         string buf;
         for (size_t i = 0; i < value_info->dims.size(); buf += to_string(value_info->dims[i++]) + ", ");
         buf.erase(buf.size() - 2);
 
-        return value_info->input
-            + "\n\ttype: " + onnx::TensorProto_DataType_Name(value_info->type)
-            + "\n\tdims: [" + buf + "]";
+        return prefix + "name: " + value_info->input
+            + "\n" + prefix + "type: " + onnx::TensorProto_DataType_Name(value_info->type)
+            + "\n"+ prefix + "dims: [" + buf + "]";
     }
 
     SIPHON_HIDDEN

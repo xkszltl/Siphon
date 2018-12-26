@@ -52,6 +52,8 @@ namespace siphon
         string onnx_model_str;
         ModelProto onnx_model;
 
+        LOG(INFO) << "Save to ONNX using value info:\n" << show_value_info("\t");
+
         // Python inter-ops.
         pyenv.exec([&]()
             {

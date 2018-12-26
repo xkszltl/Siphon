@@ -39,6 +39,8 @@ namespace siphon
         using path = std::experimental::filesystem::path;
     #endif
 
+        using string = std::string;
+
         template <typename T>
         using unique_ptr = std::unique_ptr<T>;
 
@@ -58,7 +60,7 @@ namespace siphon
         void save_onnx(path dir);
 
         SIPHON_API
-        string show_value_info();
+        string show_value_info(const string& prefix = "");
 
         Workspace ws;
         map<string, NetDef> nets;
