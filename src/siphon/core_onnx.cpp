@@ -63,15 +63,15 @@ namespace siphon
         // Python inter-ops.
         pyenv.exec([&]()
             {
-                CHECK_EQ(value_info->dims.size(), static_cast<size_t>(4)) << "Only support 4D input currently.";
                 py::dict value_info_py;
                 {
-                    auto dims = make_tuple(
-                            value_info->dims[0],
-                            value_info->dims[1],
-                            value_info->dims[2],
-                            value_info->dims[3]);
-                    value_info_py[value_info->input.c_str()] = make_tuple(static_cast<int>(value_info->type), dims);
+                    CHECK_GT(value_info->dims.size(), static_cast<size_t>(0)) << "Missing dimension info.";
+                    py::tuple dims_py(value_info->dims.size());
+                    for (size_t i = 0; i < value_info->dims.size(); ++i)
+                    {
+                        dims_py[i] = value_info->dims[i];
+                    }
+                    value_info_py[value_info->input.c_str()] = make_tuple(static_cast<int>(value_info->type), dims_py);
                 }
 
                 auto onnx_module = pyenv.import("onnx");
