@@ -72,12 +72,11 @@ namespace siphon
 
         struct ValueInfo
         {
-            string input;
             onnx::TensorProto_DataType type;
             vector<int> dims;
         };
         
-        unique_ptr<ValueInfo> value_info;
+        map<string, ValueInfo> value_info;
 
     private:
         SIPHON_HIDDEN

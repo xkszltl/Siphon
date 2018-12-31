@@ -38,7 +38,7 @@ namespace siphon
 
         CAFFE_ENFORCE(nets.count("init"), "Init net doesn't exist.");
         CAFFE_ENFORCE(nets.count("pred"), "Predict net doesn't exist.");
-        CAFFE_ENFORCE(value_info, "Missing value info.");
+        CAFFE_ENFORCE(value_info.size(), "Missing value info.");
 
         LOG(INFO) << "Convert fill ops into GivenTensor*Fill ops for init net.";
         eval_fill(nets["init"]);
@@ -64,14 +64,15 @@ namespace siphon
         pyenv.exec([&]()
             {
                 py::dict value_info_py;
+                for (const auto& info : value_info)
                 {
-                    CHECK_GT(value_info->dims.size(), static_cast<size_t>(0)) << "Missing dimension info.";
-                    py::tuple dims_py(value_info->dims.size());
-                    for (size_t i = 0; i < value_info->dims.size(); ++i)
+                    CHECK_GT(info.second.dims.size(), static_cast<size_t>(0)) << "Missing dimension info.";
+                    py::tuple dims_py(info.second.dims.size());
+                    for (size_t i = 0; i < info.second.dims.size(); ++i)
                     {
-                        dims_py[i] = value_info->dims[i];
+                        dims_py[i] = info.second.dims[i];
                     }
-                    value_info_py[value_info->input.c_str()] = make_tuple(static_cast<int>(value_info->type), dims_py);
+                    value_info_py[info.first.c_str()] = make_tuple(static_cast<int>(info.second.type), dims_py);
                 }
 
                 auto onnx_module = pyenv.import("onnx");

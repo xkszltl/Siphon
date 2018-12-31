@@ -105,8 +105,11 @@ namespace siphon
 
                 LOG(INFO) << "Create input blob based on value info:\n" << show_value_info("\t");
 
-                BlobSetTensor(ws.CreateBlob(value_info->input), Tensor(value_info->dims, dev_type));
-                ws.GetBlob(value_info->input)->GetMutable<Tensor>()->mutable_data<float>();
+                for (const auto& info : value_info)
+                {
+                    BlobSetTensor(ws.CreateBlob(info.first), Tensor(info.second.dims, dev_type));
+                    ws.GetBlob(info.first)->GetMutable<Tensor>()->mutable_data<float>();
+                }
             }
         }
 
@@ -136,7 +139,7 @@ namespace siphon
         CAFFE_ENFORCE(create_directories(dir), "Cannot create output directory \"" + dir.string() + "\".");
         dir = canonical(dir);
 
-        if (value_info)
+        if (value_info.size())
         {
             save_value_info(dir / "value_info.json");
         }
@@ -157,13 +160,19 @@ namespace siphon
     SIPHON_API
     string Siphon::show_value_info(const string& prefix)
     {
-        string buf;
-        for (size_t i = 0; i < value_info->dims.size(); buf += to_string(value_info->dims[i++]) + ", ");
-        buf.erase(buf.size() - 2);
-
-        return prefix + "name: " + value_info->input
-            + "\n" + prefix + "type: " + onnx::TensorProto_DataType_Name(value_info->type)
-            + "\n"+ prefix + "dims: [" + buf + "]";
+        string ret;
+        for (const auto& info : value_info)
+        {
+            if (ret.size())
+                ret += "\n\n";
+            string buf;
+            for (size_t i = 0; i < info.second.dims.size(); buf += to_string(info.second.dims[i++]) + ", ");
+            buf.erase(buf.size() - 2);
+            ret += prefix + "name: " + info.first
+                + "\n" + prefix + "type: " + onnx::TensorProto_DataType_Name(info.second.type)
+                + "\n"+ prefix + "dims: [" + buf + "]";
+        }
+        return ret;
     }
 
     SIPHON_HIDDEN
@@ -193,9 +202,8 @@ namespace siphon
                 pending_size -= iter_single->str().size();
                 CHECK_EQ(iter_single->size(), 4) << "Wrong number of matched components.";
 
-                value_info.reset(new ValueInfo);
-                value_info->input = (*iter_single)[1];
-                value_info->type = static_cast<onnx::TensorProto_DataType>(stoi((*iter_single)[2]));
+                auto& info = value_info[(*iter_single)[1]];
+                info.type = static_cast<onnx::TensorProto_DataType>(stoi((*iter_single)[2]));
                 sregex_iterator iter_dim((*iter_single)[3].first, (*iter_single)[3].second, gr_dim, regex_constants::match_continuous);
                 auto dims_str = static_cast<string>((*iter_single)[3]);
                 auto pending_size = dims_str.size();
@@ -204,7 +212,7 @@ namespace siphon
                     pending_size -= iter_dim->str().size();
                     CHECK_EQ(iter_dim->size(), 2) << "Wrong number of matched components.";
 
-                    value_info->dims.emplace_back(stoi((*iter_dim)[1]));
+                    info.dims.emplace_back(stoi((*iter_dim)[1]));
                 }
                 CHECK_EQ(pending_size, 0) << "Syntax error (cannot parse the entire input) in " << fn << ":\n" + string(80, '-') + "\n" + dims_str + "\n" + string(80, '-');
             }
@@ -215,16 +223,22 @@ namespace siphon
     SIPHON_HIDDEN
         void Siphon::save_value_info(const path& fn)
     {
-        if (value_info)
+        if (value_info.size())
         {
             ofstream fout(fn);
             CAFFE_ENFORCE(fout.is_open(), "Failed to open \"" + fn.string() + "\".");
-            fout << "{\"" << value_info->input << "\": [" << static_cast<int>(value_info->type) << ", [";
-            for (size_t i = 0; i < value_info->dims.size(); ++i)
+            fout << "{" << endl;
+            auto remain = value_info.size();
+            for (const auto& info : value_info)
             {
-                fout << (i ? ", " : "") << value_info->dims[i];
+                fout << "    \"" << info.first << "\": [" << static_cast<int>(info.second.type) << ", [";
+                for (size_t i = 0; i < info.second.dims.size(); ++i)
+                {
+                    fout << (i ? ", " : "") << info.second.dims[i];
+                }
+                fout << "]]" << (--remain ? "," : "") << endl;
             }
-            fout << "]]}" << endl;
+            fout << "}" << endl;
             CAFFE_ENFORCE(fout, "Failied to write to \"" + fn.string() + "\".");
         }
     }
