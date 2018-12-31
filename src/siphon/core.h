@@ -18,6 +18,7 @@
 
 #include <map>
 #include <memory>
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -38,6 +39,8 @@ namespace siphon
     #else
         using path = std::experimental::filesystem::path;
     #endif
+
+        using regex = std::regex;
 
         using string = std::string;
 
@@ -90,8 +93,15 @@ namespace siphon
         void load_onnx(path dir);
 
         SIPHON_HIDDEN
+        void load_value_info(path fn);
+
+        SIPHON_HIDDEN
         void save_value_info(const path& fn);
 
         PyEnv pyenv;
+
+        static const regex gr_multi;
+        static const regex gr_single;
+        static const regex gr_dim;
     };
 }

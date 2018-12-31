@@ -101,25 +101,7 @@ namespace siphon
             else if (set<string>{ "value_info", "valueinfo" }.count(name) && ext == ".json")
             {
                 LOG(INFO) << "Found value info file " << canonical_path << ".";
-
-                string json;
-                {
-                    ifstream fin(canonical_path);
-                    CAFFE_ENFORCE(fin.is_open(), "Cannot open \"" + canonical_path.string() + "\".");
-                    for (string buf; fin >> buf; json += buf + "\n");
-                }
-
-                regex syntax(R"(^\s*\{\s*"([^"]+)\"\s*:\s*\[\s*([0-9]+)\s*,\s*\[\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\]\s*\]\}\s*$)");
-                smatch match;
-                CAFFE_ENFORCE(regex_match(json, match, syntax), "Syntax error in \"" + canonical_path.string() + "\":\n" + string(80, '-') + "\n" + json + "\n" + string(80, '-'));
-                CHECK_EQ(match.size(), 7) << "Wrong number of matched components.";
-                value_info.reset(new ValueInfo);
-                value_info->input = match[1];
-                value_info->type = static_cast<onnx::TensorProto_DataType>(stoi(match[2]));
-                for (size_t i = 3; i < match.size(); ++i)
-                {
-                    value_info->dims.emplace_back(stoi(match[i]));
-                }
+                load_value_info(canonical_path);
 
                 LOG(INFO) << "Create input blob based on value info:\n" << show_value_info("\t");
 
@@ -182,6 +164,39 @@ namespace siphon
         return prefix + "name: " + value_info->input
             + "\n" + prefix + "type: " + onnx::TensorProto_DataType_Name(value_info->type)
             + "\n"+ prefix + "dims: [" + buf + "]";
+    }
+
+    SIPHON_HIDDEN
+    void Siphon::load_value_info(path fn)
+    {
+        fn = canonical(fn);
+        CAFFE_ENFORCE(exists(fn), "Value-info file \"" + fn.string() + "\" doesn't exist.");
+        CAFFE_ENFORCE(!is_directory(fn), "Get directory \"" + fn.string() + "\" while expecting value-info file.");
+
+        string json;
+        {
+            ifstream fin(fn);
+            CAFFE_ENFORCE(fin.is_open(), "Cannot open \"" + fn.string() + "\".");
+            for (string buf; fin >> buf; json += buf + "\n");
+        }
+
+        smatch mt_single;
+        CAFFE_ENFORCE(regex_match(json, mt_single, gr_single), "Syntax error in \"" + fn.string() + "\":\n" + string(80, '-') + "\n" + json + "\n" + string(80, '-'));
+        CHECK_EQ(mt_single.size(), 4) << "Wrong number of matched components.";
+        value_info.reset(new ValueInfo);
+        value_info->input = mt_single[1];
+        value_info->type = static_cast<onnx::TensorProto_DataType>(stoi(mt_single[2]));
+        {
+            sregex_iterator iter(mt_single[3].first, mt_single[3].second, gr_dim, regex_constants::match_continuous);
+            auto dims_str = static_cast<string>(mt_single[3]);
+            auto pending_size = dims_str.size();
+            for (const sregex_iterator end; iter != end; ++iter)
+            {
+                value_info->dims.emplace_back(stoi((*iter)[1]));
+                pending_size -= iter->str().size();
+            }
+            CHECK_EQ(pending_size, 0) << "Syntax error (cannot parse the entire input) in " << fn << ":\n" + string(80, '-') + "\n" + dims_str + "\n" + string(80, '-');
+        }
     }
 
     SIPHON_HIDDEN
