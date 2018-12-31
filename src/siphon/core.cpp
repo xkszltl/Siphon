@@ -180,27 +180,40 @@ namespace siphon
             for (string buf; fin >> buf; json += buf + "\n");
         }
 
-        smatch mt_single;
-        CAFFE_ENFORCE(regex_match(json, mt_single, gr_single), "Syntax error in \"" + fn.string() + "\":\n" + string(80, '-') + "\n" + json + "\n" + string(80, '-'));
-        CHECK_EQ(mt_single.size(), 4) << "Wrong number of matched components.";
-        value_info.reset(new ValueInfo);
-        value_info->input = mt_single[1];
-        value_info->type = static_cast<onnx::TensorProto_DataType>(stoi(mt_single[2]));
+        smatch mt_multi;
+        CAFFE_ENFORCE(regex_match(json, mt_multi, gr_multi), "Syntax error in \"" + fn.string() + "\":\n" + string(80, '-') + "\n" + json + "\n" + string(80, '-'));
+        CHECK_EQ(mt_multi.size(), 2) << "Wrong number of matched components.";
+
         {
-            sregex_iterator iter(mt_single[3].first, mt_single[3].second, gr_dim, regex_constants::match_continuous);
-            auto dims_str = static_cast<string>(mt_single[3]);
-            auto pending_size = dims_str.size();
-            for (const sregex_iterator end; iter != end; ++iter)
+            sregex_iterator iter_single(mt_multi[1].first, mt_multi[1].second, gr_single, regex_constants::match_continuous);
+            auto single_str = static_cast<string>(mt_multi[1]);
+            auto pending_size = single_str.size();
+            for (const sregex_iterator end; iter_single != end; ++iter_single)
             {
-                value_info->dims.emplace_back(stoi((*iter)[1]));
-                pending_size -= iter->str().size();
+                pending_size -= iter_single->str().size();
+                CHECK_EQ(iter_single->size(), 4) << "Wrong number of matched components.";
+
+                value_info.reset(new ValueInfo);
+                value_info->input = (*iter_single)[1];
+                value_info->type = static_cast<onnx::TensorProto_DataType>(stoi((*iter_single)[2]));
+                sregex_iterator iter_dim((*iter_single)[3].first, (*iter_single)[3].second, gr_dim, regex_constants::match_continuous);
+                auto dims_str = static_cast<string>((*iter_single)[3]);
+                auto pending_size = dims_str.size();
+                for (const sregex_iterator end; iter_dim != end; ++iter_dim)
+                {
+                    pending_size -= iter_dim->str().size();
+                    CHECK_EQ(iter_dim->size(), 2) << "Wrong number of matched components.";
+
+                    value_info->dims.emplace_back(stoi((*iter_dim)[1]));
+                }
+                CHECK_EQ(pending_size, 0) << "Syntax error (cannot parse the entire input) in " << fn << ":\n" + string(80, '-') + "\n" + dims_str + "\n" + string(80, '-');
             }
-            CHECK_EQ(pending_size, 0) << "Syntax error (cannot parse the entire input) in " << fn << ":\n" + string(80, '-') + "\n" + dims_str + "\n" + string(80, '-');
+            CHECK_EQ(pending_size, 0) << "Syntax error (cannot parse the entire input) in " << fn << ":\n" + string(80, '-') + "\n" + single_str + "\n" + string(80, '-');
         }
     }
 
     SIPHON_HIDDEN
-    void Siphon::save_value_info(const path& fn)
+        void Siphon::save_value_info(const path& fn)
     {
         if (value_info)
         {
