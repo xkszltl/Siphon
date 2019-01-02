@@ -3,6 +3,12 @@ Description
 
 Deep learning models for Caffe2/PyTorch in modern C++.
 
+Build
+====================
+
+We uses CMake as the default build system.
+And we also provided a handy makefile to call CMake with the default configuration.
+
 License
 ====================
 
