@@ -22,18 +22,27 @@ run: build/bin/siphon
 	cd build \
 	&& . /opt/intel/mkl/bin/mklvars.sh intel64 \
 	&& . scl_source enable devtoolset-7 rh-python36 \
-	&& export PYTHONPATH="/usr/local/lib/python3.6/site-packages:$$PYTHONPATH" \
 	&& $(RM) models \
 	&& $(MKDIR) models \
 	&& time bin/siphon --caffe2_log_level=0 --load ../test/resnet50 --save models/c2_native --save_onnx models/onnx_from_c2 \
 	&& time bin/siphon --caffe2_log_level=0 --load models/onnx_from_c2 --save models/c2_from_onnx --save_onnx models/onnx_from_onnx
+
+.PHONY: convert
+convert: build/bin/siphon
+	cd build \
+	&& . /opt/intel/mkl/bin/mklvars.sh intel64 \
+	&& . scl_source enable devtoolset-7 rh-python36 \
+	&& $(RM) models \
+	&& $(MKDIR) models \
+	&& for i in CNNDBLSTM ConfidenceModel RejectionModel; do \
+	    time bin/siphon --caffe2_log_level=0 --load "../test/$$i" --save_onnx "models/$$i"_onnx; \
+	done
 
 .PHONY: debug
 debug: build/bin/siphon
 	cd build \
 	&& . /opt/intel/mkl/bin/mklvars.sh intel64 \
 	&& . scl_source enable devtoolset-7 rh-python36 \
-	&& export PYTHONPATH="/usr/local/lib/python3.6/site-packages:$$PYTHONPATH" \
 	&& $(RM) models \
 	&& $(MKDIR) models \
 	&& LD_DEBUG=files bin/siphon --caffe2_log_level=0 --load ../test/resnet50 --save models/c2_native --save_onnx models/onnx_from_c2 \
