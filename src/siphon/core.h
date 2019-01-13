@@ -3,7 +3,7 @@
 #include "siphon/pyenv.h"
 #include "siphon/utils.h"
 
-#include <c10/Device.h>
+#include <c10/core/Device.h>
 
 #include <caffe2/core/net.h>
 #include <caffe2/core/workspace.h>
