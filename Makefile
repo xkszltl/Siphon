@@ -34,7 +34,7 @@ convert: build/bin/siphon
 	&& . scl_source enable devtoolset-7 rh-python36 \
 	&& $(RM) models \
 	&& $(MKDIR) models \
-	&& for i in CNNDBLSTM ConfidenceModel RejectionModel; do \
+	&& for i in ConfidenceModel RejectionModel CNNDBLSTM; do \
 	    time bin/siphon --caffe2_log_level=0 --load "../test/$$i" --save_onnx "models/$$i"_onnx; \
 	done
 
