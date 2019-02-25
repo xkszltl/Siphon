@@ -101,6 +101,7 @@ target_link_libraries (siphon_cpu PUBLIC pybind11::embed)
 # set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "/usr/local/src/pytorch/cmake/Modules")
 find_package (Caffe2 REQUIRED CONFIG)
 target_link_libraries (siphon_cpu PUBLIC ${Caffe2_MAIN_LIBS})
+target_link_libraries (siphon_cpu PUBLIC gflags)
 
 find_package (ONNX REQUIRED CONFIG)
 target_link_libraries (siphon_cpu PUBLIC onnx)
