@@ -7,18 +7,13 @@
 
 #include <pybind11/embed.h>
 
+#include <filesystem>
 #include <locale>
 #include <string>
 #include <tuple>
 
 using namespace std;
-
-#if __has_include(<filesystem>)
-    using namespace std::filesystem;
-#else
-    using namespace std::experimental::filesystem;
-#endif
-
+using namespace std::filesystem;
 using namespace caffe2;
 using namespace pybind11::literals;
 

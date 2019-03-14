@@ -10,12 +10,7 @@
 
 #include <onnx/onnx_pb.h>
 
-#if __has_include(<filesystem>)
-    #include <filesystem>
-#else
-    #include <experimental/filesystem>
-#endif
-
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <regex>
@@ -34,11 +29,7 @@ namespace siphon
         template <typename K, typename V>
         using map = std::map<K, V>;
 
-    #if __has_include(<filesystem>)
         using path = std::filesystem::path;
-    #else
-        using path = std::experimental::filesystem::path;
-    #endif
 
         using regex = std::regex;
 

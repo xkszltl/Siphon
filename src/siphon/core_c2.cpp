@@ -5,18 +5,14 @@
 #include <caffe2/utils/proto_utils.h>
 
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <locale>
 #include <set>
 #include <string>
 
 using namespace std;
-
-#if __has_include(<filesystem>)
-    using namespace std::filesystem;
-#else
-    using namespace std::experimental::filesystem;
-#endif
+using namespace std::filesystem;
 
 using namespace caffe2;
 

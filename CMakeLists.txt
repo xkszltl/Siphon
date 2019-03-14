@@ -82,7 +82,7 @@ if (NOT MSVC)
 endif ()
 
 if (CMAKE_COMPILER_IS_GNUCXX)
-    find_library (STDCXXFS_LIB stdc++fs HINTS /opt/rh/devtoolset-7/root/usr/lib/gcc/x86_64-redhat-linux/7)
+    find_library (STDCXXFS_LIB stdc++fs HINTS /opt/rh/devtoolset-8/root/usr/lib/gcc/x86_64-redhat-linux/8)
     target_link_libraries (siphon_cpu PRIVATE ${STDCXXFS_LIB})
 endif ()
 

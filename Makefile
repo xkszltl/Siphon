@@ -13,7 +13,7 @@ build/bin/siphon:
 	$(MKDIR) build
 	cd build \
 	&& . /opt/intel/mkl/bin/mklvars.sh intel64 \
-	&& . scl_source enable devtoolset-7 rh-python36 \
+	&& . scl_source enable devtoolset-8 rh-python36 \
 	&& time cmake -DCMAKE_VERBOSE_MAKEFILE=ON -GNinja .. \
 	&& time cmake --build .
 
@@ -21,7 +21,7 @@ build/bin/siphon:
 run: build/bin/siphon
 	cd build \
 	&& . /opt/intel/mkl/bin/mklvars.sh intel64 \
-	&& . scl_source enable devtoolset-7 rh-python36 \
+	&& . scl_source enable devtoolset-8 rh-python36 \
 	&& $(RM) models \
 	&& $(MKDIR) models \
 	&& time bin/siphon --caffe2_log_level=0 --load ../test/resnet50 --save models/c2_native --save_onnx models/onnx_from_c2 \
@@ -31,7 +31,7 @@ run: build/bin/siphon
 convert: build/bin/siphon
 	cd build \
 	&& . /opt/intel/mkl/bin/mklvars.sh intel64 \
-	&& . scl_source enable devtoolset-7 rh-python36 \
+	&& . scl_source enable devtoolset-8 rh-python36 \
 	&& $(RM) models \
 	&& $(MKDIR) models \
 	&& for i in $$(find "../test/contrib/" -mindepth 1 -type d); do \
@@ -42,7 +42,7 @@ convert: build/bin/siphon
 debug: build/bin/siphon
 	cd build \
 	&& . /opt/intel/mkl/bin/mklvars.sh intel64 \
-	&& . scl_source enable devtoolset-7 rh-python36 \
+	&& . scl_source enable devtoolset-8 rh-python36 \
 	&& $(RM) models \
 	&& $(MKDIR) models \
 	&& LD_DEBUG=files bin/siphon --caffe2_log_level=0 --load ../test/resnet50 --save models/c2_native --save_onnx models/onnx_from_c2 \
