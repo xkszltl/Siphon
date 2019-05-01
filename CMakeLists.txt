@@ -77,6 +77,9 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     target_link_libraries (siphon_cpu PRIVATE ${STDCXXFS_LIB})
 endif ()
 
+find_package (Threads REQUIRED)
+target_link_libraries (siphon_cpu PUBLIC Threads::Threads)
+
 find_package (OpenMP REQUIRED)
 if (OPENMP_FOUND)
     target_link_libraries(siphon_cpu PUBLIC OpenMP::OpenMP_CXX)
@@ -87,9 +90,6 @@ if (OpenCV_FOUND)
     target_include_directories (siphon_cpu PUBLIC ${OpenCV_INCLUDE_DIRS})
     target_link_libraries (siphon_cpu PUBLIC ${OpenCV_LIBS})
 endif ()
-
-find_package (Threads REQUIRED)
-target_link_libraries (siphon_cpu PUBLIC ${CMAKE_THREAD_LIBS_INIT})
 
 find_package (pybind11 REQUIRED CONFIG)
 target_link_libraries (siphon_cpu PUBLIC pybind11::embed)
