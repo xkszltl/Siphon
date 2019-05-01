@@ -2,7 +2,7 @@ stages:
   - build
   - run
 
-gcc-7:
+gcc-8:
   stage: build
   retry: 1
   tags:
