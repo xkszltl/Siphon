@@ -21,7 +21,7 @@ namespace siphon
     SIPHON_HIDDEN
     NetDef& Siphon::eval_fill(NetDef& net) const
     {
-        for (size_t op_idx = 0; op_idx < net.op_size(); ++op_idx)
+        for (int64_t op_idx = 0; op_idx < net.op_size(); ++op_idx)
         {
             auto& op = *net.mutable_op(op_idx);
             if (!op.has_type())
@@ -40,7 +40,7 @@ namespace siphon
                 Workspace tmp_ws;
                 tmp_ws.RunOperatorOnce(op);
 
-                for (size_t output_idx = 0; output_idx < op.output_size(); ++output_idx)
+                for (int64_t output_idx = 0; output_idx < op.output_size(); ++output_idx)
                 {
                     const auto& output = op.output(output_idx);
 
