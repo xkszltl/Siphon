@@ -11,42 +11,49 @@ all: build/bin/siphon
 build/bin/siphon:
 	$(RM) build
 	$(MKDIR) build
-	cd build \
-	&& . /opt/intel/mkl/bin/mklvars.sh intel64 \
-	&& . scl_source enable devtoolset-8 \
-	&& time cmake -DCMAKE_VERBOSE_MAKEFILE=ON -GNinja .. \
-	&& time cmake --build .
+	. scl_source enable devtoolset-8; \
+	set -e; \
+	cd build; \
+	. /opt/intel/mkl/bin/mklvars.sh intel64; \
+	time cmake -DCMAKE_VERBOSE_MAKEFILE=ON -GNinja ..; \
+	time cmake --build .;
 
 .PHONY: run
 run: build/bin/siphon
-	cd build \
-	&& . /opt/intel/mkl/bin/mklvars.sh intel64 \
-	&& . scl_source enable devtoolset-8 \
-	&& $(RM) models \
-	&& $(MKDIR) models \
-	&& time bin/siphon --caffe2_log_level=0 --load ../test/resnet50 --save models/c2_native --save_onnx models/onnx_from_c2 \
-	&& time bin/siphon --caffe2_log_level=0 --load models/onnx_from_c2 --save models/c2_from_onnx --save_onnx models/onnx_from_onnx
+	. scl_source enable devtoolset-8; \
+	set -e; \
+	cd build; \
+	. /opt/intel/mkl/bin/mklvars.sh intel64; \
+	$(RM) models; \
+	$(MKDIR) models; \
+	time bin/siphon --caffe2_log_level=0 --load ../test/resnet50 --save models/c2_native --save_onnx models/onnx_from_c2; \
+	time bin/siphon --caffe2_log_level=0 --load models/onnx_from_c2 --save models/c2_from_onnx --save_onnx models/onnx_from_onnx;
 
 .PHONY: convert
 convert: build/bin/siphon
-	cd build \
-	&& . /opt/intel/mkl/bin/mklvars.sh intel64 \
-	&& . scl_source enable devtoolset-8 \
-	&& $(RM) models \
-	&& $(MKDIR) models \
-	&& for i in $$(find "../test/contrib/" -mindepth 1 -type d); do \
+	. scl_source enable devtoolset-8; \
+	set -e; \
+	cd build; \
+	. /opt/intel/mkl/bin/mklvars.sh intel64; \
+	$(RM) models; \
+	$(MKDIR) models; \
+	for i in $$(find "../test/contrib/" -mindepth 1 -type d | grep -v '_onnx$$'); do \
 	    time bin/siphon --caffe2_log_level=0 --load "$$i" --save_onnx "models/$$(basename "$$i")_onnx"; \
-	done
+	done; \
+	for i in $$(find "../test/contrib/" -mindepth 1 -type d | grep '_onnx$$'); do \
+	    time bin/siphon --caffe2_log_level=0 --load "$$i" --save "models/$$(basename "$$i" | sed 's/_onnx$$//')"; \
+	done;
 
 .PHONY: debug
 debug: build/bin/siphon
-	cd build \
-	&& . /opt/intel/mkl/bin/mklvars.sh intel64 \
-	&& . scl_source enable devtoolset-8 \
-	&& $(RM) models \
-	&& $(MKDIR) models \
-	&& LD_DEBUG=files bin/siphon --caffe2_log_level=0 --load ../test/resnet50 --save models/c2_native --save_onnx models/onnx_from_c2 \
-	&& LD_DEBUG= gdb --args bin/siphon --caffe2_log_level=0 --load models/onnx_from_c2 --save models/c2_from_onnx --save_onnx models/onnx_from_onnx
+	. scl_source enable devtoolset-8; \
+	set -e; \
+	cd build; \
+	. /opt/intel/mkl/bin/mklvars.sh intel64; \
+	$(RM) models; \
+	$(MKDIR) models; \
+	LD_DEBUG=files bin/siphon --caffe2_log_level=0 --load ../test/resnet50 --save models/c2_native --save_onnx models/onnx_from_c2; \
+	LD_DEBUG= gdb --args bin/siphon --caffe2_log_level=0 --load models/onnx_from_c2 --save models/c2_from_onnx --save_onnx models/onnx_from_onnx;
 
 .PHONY: clean
 clean:
