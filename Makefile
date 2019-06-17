@@ -37,12 +37,15 @@ convert: build/bin/siphon
 	. /opt/intel/mkl/bin/mklvars.sh intel64; \
 	$(RM) models; \
 	$(MKDIR) models; \
-	for i in $$(find "../test/contrib/" -mindepth 1 -type d | grep -v '_onnx$$'); do \
-	    time bin/siphon --caffe2_log_level=0 --load "$$i" --save_onnx "models/$$(basename "$$i")_onnx"; \
-	done; \
-	for i in $$(find "../test/contrib/" -mindepth 1 -type d | grep '_onnx$$'); do \
-	    time bin/siphon --caffe2_log_level=0 --load "$$i" --save "models/$$(basename "$$i" | sed 's/_onnx$$//')"; \
-	done;
+	find "../test/contrib/" -mindepth 1 -type d | grep -v '_onnx$$' \
+	| parallel --bar -j0 'bash -c '"'"' \
+	    set -e; \
+	    time if grep "_onnx$$" {} >/dev/null; then \
+	        bin/siphon --caffe2_log_level=0 --load {} --save      "models/$$(basename {} | sed "s/_onnx$$//")"; \
+	    else \
+	        bin/siphon --caffe2_log_level=0 --load {} --save_onnx "models/$$(basename {})_onnx"; \
+	    fi; \
+	'"'";
 
 .PHONY: debug
 debug: build/bin/siphon
