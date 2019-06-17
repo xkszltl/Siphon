@@ -23,7 +23,7 @@ resnet50:
     - docker
     - gpu
   script:
-    - . /etc/codingcafe/scripts/pkgs/env-mirror.sh
+    - . /etc/roaster/scripts/pkgs/env/mirror.sh
     - mkdir -p test/resnet50
     - pushd test/resnet50
     - curl -sSL "$GIT_MIRROR/caffe2/models/raw/master/$(basename "$(pwd)")/init_net.pb?inline=false" > init_net.pb
