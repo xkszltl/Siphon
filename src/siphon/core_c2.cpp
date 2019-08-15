@@ -2,7 +2,10 @@
 
 #include <caffe2/core/logging.h>
 #include <caffe2/core/types.h>
+#include <caffe2/opt/optimizer.h>
 #include <caffe2/utils/proto_utils.h>
+
+#include <pybind11/embed.h>
 
 #include <cstdint>
 #include <filesystem>
@@ -15,9 +18,12 @@ using namespace std;
 using namespace std::filesystem;
 
 using namespace caffe2;
+using namespace pybind11::literals;
 
 namespace siphon
 {
+    namespace py = pybind11;
+
     SIPHON_HIDDEN
     NetDef& Siphon::eval_fill(NetDef& net) const
     {
@@ -156,6 +162,106 @@ namespace siphon
         else
         {
             CAFFE_ENFORCE(false, "Unknown extension \"" + ext + "\" when writing to \"" + fn.string() + "\"");
+        }
+    }
+
+    SIPHON_HIDDEN
+    void Siphon::optimize_c2()
+    {
+        string init_lvl = "init";
+        string pred_lvl = "pred";
+
+        CAFFE_ENFORCE(nets.count("init"), "Init net doesn't exist.");
+        CAFFE_ENFORCE(nets.count("pred"), "Predict net doesn't exist.");
+
+        {
+            const auto& before = nets["pred"].DebugString();
+            nets["init_O1"] = opt::optimize(nets["init"]);
+            const auto& after = nets["pred"].DebugString();
+            if (before != after)
+            {
+                LOG(INFO) << "Init network optimized with graph optimization.";
+                init_lvl = "init_O1";
+            }
+        }
+
+        {
+            const auto& before = nets["pred"].DebugString();
+            nets["pred_O1"] = opt::optimize(nets["pred"]);
+            const auto& after = nets["pred"].DebugString();
+            if (before != after)
+            {
+                LOG(INFO) << "Predict network optimized with graph optimization.";
+                init_lvl = "pred_O1";
+            }
+        }
+
+        string init_str;
+        string pred_str;
+        nets[init_lvl].SerializeToString(&init_str);
+        nets[pred_lvl].SerializeToString(&pred_str);
+
+        set<string> static_blobs;
+        for (const auto& blob_name : nets[pred_lvl].external_input())
+            static_blobs.emplace(blob_name);
+        for (const auto& blob_name : nets[pred_lvl].external_output())
+            static_blobs.emplace(blob_name);
+        auto input_blobs = static_blobs;
+        for (const auto& blob_name : nets[init_lvl].external_output())
+        {
+            static_blobs.emplace(blob_name);
+            input_blobs.erase(blob_name);
+        }
+
+        string pred_opt_str;
+
+        pyenv.exec([&]()
+            {
+                py::list static_blobs_py;
+                for (const auto& blob_name : static_blobs)
+                    static_blobs_py.append(blob_name);
+
+                py::list input_blobs_py;
+                for (const auto& blob_name : input_blobs)
+                    input_blobs_py.append(blob_name);
+
+                auto proto_module = pyenv.import("caffe2.proto.caffe2_pb2");
+                auto memonger_module = pyenv.import("caffe2.python.memonger");
+
+                LOG(INFO) << "Deserialize init network in python.";
+                auto init_py = proto_module.attr("NetDef")();
+                init_py.attr("ParseFromString")(py::bytes(init_str));
+
+                LOG(INFO) << "Deserialize predict network in python.";
+                auto pred_py = proto_module.attr("NetDef")();
+                pred_py.attr("ParseFromString")(py::bytes(pred_str));
+
+                LOG(INFO) << "Optimizing predict network in python.";
+                auto optimize_interference = memonger_module.attr("optimize_interference");
+                auto optimize_inference_fast = memonger_module.attr("optimize_inference_fast");
+                auto optimize_inference_for_dag = memonger_module.attr("optimize_inference_for_dag");
+                auto pred_opt_tuple_py = optimize_interference(pred_py, static_blobs_py);
+                auto pred_opt_py = pred_opt_tuple_py.attr("net");
+                // auto pred_opt_py = optimize_inference_fast(pred_py, static_blobs_py);
+                // auto pred_opt_py = optimize_inference_for_dag(pred_py, input_blobs_py);
+
+                LOG(INFO) << "Serialize predict network and send back to C++.";
+                {
+                    py::bytes pred_opt_str_py = pred_opt_py.attr("SerializeToString")();
+                    pred_opt_str = static_cast<string>(pred_opt_str_py);
+                }
+            });
+
+        if (pred_opt_str == pred_str)
+            LOG(INFO) << "No memonger optimzation available for predict network.";
+        else
+        {
+            LOG(INFO) << "Deserialize predict network in C++.";
+            NetDef pred_opt;
+            CAFFE_ENFORCE(ParseProtoFromLargeString(pred_opt_str, &pred_opt), "Failed to deserialize optimized predict network.");
+            nets["pred_O2"] = pred_opt;
+            LOG(INFO) << "Predict network optimized with memonger.";
+            pred_lvl = "pred_O2";
         }
     }
 }

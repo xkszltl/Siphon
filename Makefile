@@ -38,12 +38,12 @@ convert: build/bin/siphon
 	$(RM) models; \
 	$(MKDIR) models; \
 	find "../test/contrib/" -mindepth 1 -type d \
-	| parallel --bar -j0 'bash -c '"'"' \
+	| parallel --bar -j0 -k 'bash -c '"'"' \
 	    set -e; \
 	    time if grep "_onnx$$" <<< {} > /dev/null; then \
-	        bin/siphon --caffe2_log_level=0 --load {} --save      "models/$$(basename {} | sed "s/_onnx$$//")"; \
+	        bin/siphon --caffe2_log_level=0 --load {} --save "models/$$(basename {} | sed "s/_onnx$$//")"; \
 	    else \
-	        bin/siphon --caffe2_log_level=0 --load {} --save_onnx "models/$$(basename {})_onnx"; \
+	        bin/siphon --caffe2_log_level=0 --load {} --save "models/$$(basename {}                    )" --save_onnx "models/$$(basename {})_onnx"; \
 	    fi; \
 	'"'";
 

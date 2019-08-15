@@ -80,6 +80,9 @@ namespace siphon
         static void save_c2(const NetDef& net, path fn);
 
         SIPHON_HIDDEN
+        void optimize_c2();
+
+        SIPHON_HIDDEN
         void load_onnx(path dir);
 
         SIPHON_HIDDEN

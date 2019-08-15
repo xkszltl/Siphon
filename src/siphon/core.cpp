@@ -120,7 +120,7 @@ namespace siphon
 
         CHECK_GT(nets.count("pred"), 0) << "Predict net not found.";
         LOG(INFO) << "Create predict net.";
-        ws.CreateNet(nets["pred"]);
+        // ws.CreateNet(nets["pred"]);
         // ws.RunNet("pred");
 
         LOG(INFO) << "Model loaded successfully.";
@@ -144,10 +144,21 @@ namespace siphon
         }
 
         CAFFE_ENFORCE(nets.count("init"), "Init net doesn't exist.");
-        save_c2(nets["init"], dir / "init.pb");
+        for (const string lvl : { "_O3", "_O2", "_O1", "" })
+            if (nets.count("init" + lvl))
+            {
+                save_c2(nets["init" + lvl], dir / "init.pb");
+                break;
+            }
 
         CAFFE_ENFORCE(nets.count("pred"), "Predict net doesn't exist.");
-        save_c2(nets["pred"], dir / "pred.prototxt");
+        optimize_c2();
+        for (const string lvl : { "_O3", "_O2", "_O1", "" })
+            if (nets.count("pred" + lvl))
+            {
+                save_c2(nets["pred" + lvl], dir / "pred.prototxt");
+                break;
+            }
 
         LOG(INFO) << "Model saved in Caffe2 format successfully.";
     }
@@ -216,7 +227,7 @@ namespace siphon
     }
 
     SIPHON_HIDDEN
-        void Siphon::save_value_info(const path& fn)
+    void Siphon::save_value_info(const path& fn)
     {
         if (value_info.size())
         {
